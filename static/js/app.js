@@ -1,5 +1,5 @@
 const $ = (s) => document.querySelector(s);
-const state = { model: "skipgram", view: "single", models: [], ready: false };
+const state = { model: "word2vec_skipgram", view: "single", models: [], ready: false };
 const examples = ["shipping update", "forgot my password", "refund for damaged item", "track my order", "change delivery address"];
 
 // ---------- theme ----------
@@ -19,7 +19,7 @@ function hideBanner() { $("#banner").className = "banner"; }
 
 // ---------- boot ----------
 async function boot() {
-  const r = await fetch("/api/stats").then((r) => r.json()).catch(() => null);
+  const r = await fetch("/stats").then((r) => r.json()).catch(() => null);
   if (!r) { banner("Cannot reach the server.", "err"); return; }
   if (!r.ready) {
     banner(r.message + " …", "info");
@@ -81,11 +81,19 @@ async function search() {
   if (!state.ready) { banner("Index is still building, please wait…", "info"); return; }
   $("#searchBtn").disabled = true;
   $("#results").innerHTML = `<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>`;
-  const payload = { query: q, model: state.model, top_k: +$("#topk").value, category: $("#category").value };
-  try {
-    const res = await fetch(state.view === "compare" ? "/api/compare" : "/api/search", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
-    });
+  const params = new URLSearchParams({
+  query: q,
+  model: state.model,
+  top_k: $("#topk").value,
+  category: $("#category").value
+});
+
+try {
+  const endpoint = state.view === "compare"
+    ? "/compare"
+    : "/search";
+
+  const res = await fetch(`${endpoint}?${params.toString()}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Search failed");
     hideBanner();

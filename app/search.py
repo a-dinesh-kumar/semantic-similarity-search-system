@@ -76,12 +76,52 @@ def get_query_vector(query, model):
     Convert a raw user query into a dense vector.
     """
 
-    query = preprocess_text(query)
+    processed_query  = preprocess_text(query)
 
-    if not query.strip():
+    if not processed_query .strip():
         return np.zeros(model.vector_size)
 
-    return get_document_vector(query, model)
+    return get_document_vector(processed_query , model)
+
+def get_query_token_status(query, model):
+    """
+    Preprocess the query and identify known and unknown tokens.
+
+    Known tokens:
+        Tokens available in the model vocabulary.
+
+    Unknown tokens:
+        Tokens not present in the model vocabulary.
+    """
+
+    processed_query = preprocess_text(query)
+
+    if not processed_query.strip():
+        return {
+            "processed_query": "",
+            "known_tokens": [],
+            "unknown_tokens": []
+        }
+
+    tokens = processed_query.split()
+
+    known_tokens = [
+        token
+        for token in tokens
+        if token in model.wv.key_to_index
+    ]
+
+    unknown_tokens = [
+        token
+        for token in tokens
+        if token not in model.wv.key_to_index
+    ]
+
+    return {
+        "processed_query": processed_query,
+        "known_tokens": known_tokens,
+        "unknown_tokens": unknown_tokens
+    }
 
 
 # --------------------------------------------------
