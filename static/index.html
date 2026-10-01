@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Semantic Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">🔎</div>
+      <div><h1>Semantic Search</h1><div class="sub">Word2Vec · FastText · Cosine similarity</div></div>
+    </div>
+    <div style="display:flex; gap:8px">
+      <button class="btn" id="uploadBtn">⬆ Upload CSV</button>
+      <input type="file" id="fileInput" accept=".csv" hidden />
+      <button class="icon-btn" id="themeBtn" title="Toggle theme">🌓</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <section class="hero">
+    <h2>Find documents by <span class="grad">meaning</span>,<br/>not just keywords</h2>
+    <p>Ask in your own words. Your query is cleaned, embedded and matched against every document in the knowledge base.</p>
+  </section>
+
+  <section class="panel">
+    <div class="searchbar">
+      <input type="text" id="query" placeholder="e.g. I forgot my password and can't log in" autocomplete="off" autofocus />
+      <button class="btn primary" id="searchBtn">Search</button>
+    </div>
+    <div class="controls">
+      <div class="ctl">Embedding model
+        <div class="seg" id="modelSeg"></div>
+      </div>
+      <div class="ctl">Category
+        <select id="category"><option>All</option></select>
+      </div>
+      <div class="ctl">Results: <span class="k" id="kVal">5</span>
+        <input type="range" id="topk" min="1" max="20" value="5" />
+      </div>
+      <div class="ctl">View
+        <div class="seg" id="viewSeg">
+          <button data-v="single" class="on">Single</button>
+          <button data-v="compare">Compare all 3</button>
+        </div>
+      </div>
+    </div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <section class="stats" id="stats"></section>
+
+  <div id="meta"></div>
+  <div id="results">
+    <div class="empty"><div class="big">✨</div><p>Type a question above to get started.</p></div>
+  </div>
+
+  <footer>Built with FastAPI · scikit-learn · gensim · NLTK</footer>
+</div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
