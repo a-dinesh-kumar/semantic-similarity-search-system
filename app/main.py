@@ -284,6 +284,22 @@ def search(
         documents=knowledge_base["cleaned_text"]
     )
 
+    query_info = get_query_token_status(
+        query=query,
+        model=selected_model
+    )
+
+    if not query_info["processed_query"]:
+        return {
+            "query": query,
+            "model": model,
+            "model_label": MODEL_LABELS[model],
+            "processed_query": "",
+            "known_tokens": [],
+            "unknown_tokens": [],
+            "results": []
+        }
+
     results = semantic_search(
         query=query,
         model=selected_model,

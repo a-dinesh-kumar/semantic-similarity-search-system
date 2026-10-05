@@ -4,10 +4,21 @@ const examples = ["shipping update", "forgot my password", "refund for damaged i
 
 // ---------- theme ----------
 const savedTheme = localStorage.getItem("theme");
-if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+
+if (savedTheme) {
+  document.documentElement.dataset.theme = savedTheme;
+} else {
+  document.documentElement.dataset.theme = "light";
+}
+
 $("#themeBtn").onclick = () => {
-  const t = document.documentElement.dataset.theme === "light" ? "dark" : "light";
-  document.documentElement.dataset.theme = t; localStorage.setItem("theme", t);
+  const t =
+    document.documentElement.dataset.theme === "light"
+      ? "dark"
+      : "light";
+
+  document.documentElement.dataset.theme = t;
+  localStorage.setItem("theme", t);
 };
 
 // ---------- helpers ----------
@@ -77,7 +88,12 @@ function metaBlock(d) {
 
 async function search() {
   const q = $("#query").value.trim();
-  if (!q) return;
+
+  if (!q) {
+    banner("Please enter a search query.", "err");
+    $("#query").focus();
+    return;
+  }
   if (!state.ready) { banner("Index is still building, please wait…", "info"); return; }
   $("#searchBtn").disabled = true;
   $("#results").innerHTML = `<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>`;
@@ -95,6 +111,17 @@ try {
 
   const res = await fetch(`${endpoint}?${params.toString()}`);
     const data = await res.json();
+    if (!data.processed_query && state.view === "single") {
+      $("#meta").innerHTML = "";
+      $("#results").innerHTML = `
+        <div class="empty">
+          <div class="big">🤷</div>
+          <p>No searchable words remained after cleaning the query.</p>
+        </div>
+      `;
+      banner("Your query became empty after preprocessing. Try different words.", "err");
+      return;
+    }
     if (!res.ok) throw new Error(data.detail || "Search failed");
     hideBanner();
     if (state.view === "compare") {
@@ -117,19 +144,20 @@ $("#category").onchange = () => { if ($("#query").value.trim()) search(); };
 $("#topk").onchange = () => { if ($("#query").value.trim()) search(); };
 
 // ---------- upload ----------
-$("#uploadBtn").onclick = () => $("#fileInput").click();
-$("#fileInput").onchange = async (e) => {
-  const f = e.target.files[0]; if (!f) return;
-  const fd = new FormData(); fd.append("file", f);
-  banner("Uploading and rebuilding the index (this trains 3 models, may take a moment)…");
-  state.ready = false;
-  try {
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
-    const d = await res.json();
-    if (!res.ok) throw new Error(d.detail || "Upload failed");
-    setTimeout(boot, 1500);
-  } catch (err) { banner(err.message, "err"); state.ready = true; }
-  e.target.value = "";
-};
+$("#uploadBtn").disabled = true;
+$("#uploadBtn").title = "CSV upload is currently disabled";
+// $("#fileInput").onchange = async (e) => {
+//   const f = e.target.files[0]; if (!f) return;
+//   const fd = new FormData(); fd.append("file", f);
+//   banner("Uploading and rebuilding the index (this trains 3 models, may take a moment)…");
+//   state.ready = false;
+//   try {
+//     const res = await fetch("/api/upload", { method: "POST", body: fd });
+//     const d = await res.json();
+//     if (!res.ok) throw new Error(d.detail || "Upload failed");
+//     setTimeout(boot, 1500);
+//   } catch (err) { banner(err.message, "err"); state.ready = true; }
+//   e.target.value = "";
+// };
 
 boot();
