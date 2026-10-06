@@ -7,9 +7,13 @@ NLTK_DATA_DIR = os.path.join(os.path.dirname(__file__), "nltk_data")
 os.makedirs(NLTK_DATA_DIR, exist_ok=True)
 
 packages = [
+    "stopwords",
+    "punkt",
+    "punkt_tab",
     "wordnet",
     "omw-1.4",
-    "averaged_perceptron_tagger_eng"
+    "averaged_perceptron_tagger",
+    "averaged_perceptron_tagger_eng",
 ]
 
 for package in packages:
