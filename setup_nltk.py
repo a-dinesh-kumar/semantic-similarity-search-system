@@ -1,20 +1,20 @@
+import os
 import nltk
 
+# Store NLTK data inside the project
+NLTK_DATA_DIR = os.path.join(os.path.dirname(__file__), "nltk_data")
 
-resources = [
-    "punkt",
-    "punkt_tab",
-    "stopwords",
+os.makedirs(NLTK_DATA_DIR, exist_ok=True)
+
+packages = [
     "wordnet",
     "omw-1.4",
-    "averaged_perceptron_tagger",
     "averaged_perceptron_tagger_eng"
 ]
 
+for package in packages:
+    print(f"Downloading/checking NLTK package: {package}")
+    nltk.download(package, download_dir=NLTK_DATA_DIR)
 
-for resource in resources:
-    print(f"Downloading: {resource}")
-    nltk.download(resource)
-
-
-print("\nAll NLTK resources downloaded successfully.")
+print(f"NLTK data stored at: {NLTK_DATA_DIR}")
+print("NLTK data setup completed successfully.")
