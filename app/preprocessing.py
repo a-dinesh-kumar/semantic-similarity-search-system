@@ -1,5 +1,6 @@
 import re
-
+import os
+import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
@@ -8,6 +9,13 @@ from nltk.stem import WordNetLemmatizer
 # --------------------------------------------------
 # NLP resources
 # --------------------------------------------------
+
+NLTK_DATA_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    "nltk_data"
+)
+
+nltk.data.path.insert(0, NLTK_DATA_DIR)
 
 stop_words = set(stopwords.words("english"))
 lemmatizer = WordNetLemmatizer()
