@@ -4,7 +4,10 @@ A semantic search application that finds relevant documents based on **meaning a
 
 The system preprocesses natural-language queries, converts documents and queries into dense vector representations using **Word2Vec embeddings**, and ranks documents using **cosine similarity**.
 
-**Live application:**
+---
+## 🚀 Live application
+
+https://semantic-similarity-search-system-5u4u.onrender.com/
 
 ---
 
