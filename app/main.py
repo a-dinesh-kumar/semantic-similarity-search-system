@@ -4,7 +4,11 @@ from gensim.models import Word2Vec, FastText
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.data_loader import load_knowledge_base
-from app.search import (get_document_vectors,get_query_token_status,semantic_search)
+from app.search import (
+    get_document_vectors,
+    get_query_token_status,
+    semantic_search
+)
 
 
 # ============================================================
@@ -30,6 +34,7 @@ word2vec_cbow = Word2Vec.load(
     str(CBOW_MODEL_PATH),
     mmap="r"
 )
+
 print("✓ Word2Vec CBOW loaded")
 
 
@@ -37,17 +42,35 @@ word2vec_skipgram = Word2Vec.load(
     str(SKIPGRAM_MODEL_PATH),
     mmap="r"
 )
+
 print("✓ Word2Vec Skip-Gram loaded")
 
 
-fasttext_model = FastText.load(
-    str(FASTTEXT_MODEL_PATH),
-    mmap="r"
-)
-print("✓ FastText loaded")
+# ------------------------------------------------------------
+# FastText is optional for deployment
+# ------------------------------------------------------------
+
+fasttext_model = None
+
+try:
+    fasttext_model = FastText.load(
+        str(FASTTEXT_MODEL_PATH),
+        mmap="r"
+    )
+
+    print("✓ FastText loaded")
+
+except (FileNotFoundError, ValueError, EOFError) as e:
+
+    print(
+        "⚠ FastText model not available. "
+        "Continuing with Word2Vec models only."
+    )
+
+    print(f"FastText loading error: {e}")
 
 
-print("All embedding models loaded successfully.")
+print("Embedding model loading completed.")
 
 
 # ============================================================
@@ -56,16 +79,21 @@ print("All embedding models loaded successfully.")
 
 MODELS = {
     "word2vec_cbow": word2vec_cbow,
-    "word2vec_skipgram": word2vec_skipgram,
-    "fasttext": fasttext_model
+    "word2vec_skipgram": word2vec_skipgram
 }
-
 
 MODEL_LABELS = {
     "word2vec_cbow": "Word2Vec CBOW",
-    "word2vec_skipgram": "Word2Vec Skip-Gram",
-    "fasttext": "FastText"
+    "word2vec_skipgram": "Word2Vec Skip-Gram"
 }
+
+
+# Add FastText only when it is successfully available
+if fasttext_model is not None:
+
+    MODELS["fasttext"] = fasttext_model
+
+    MODEL_LABELS["fasttext"] = "FastText"
 
 
 # ============================================================
@@ -105,6 +133,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
+
 app.mount(
     "/static",
     StaticFiles(directory=STATIC_DIR),
@@ -127,13 +156,15 @@ def root():
 
 @app.get("/health")
 def health():
+
     return {
         "status": "healthy",
+
         "models": {
-            "word2vec_cbow": "loaded",
-            "word2vec_skipgram": "loaded",
-            "fasttext": "loaded"
+            model_name: "loaded"
+            for model_name in MODELS
         },
+
         "knowledge_base": {
             "status": "loaded",
             "documents": len(knowledge_base)
@@ -168,29 +199,36 @@ def stats():
         for category, count in category_counts.items()
     ]
 
+    model_data = [
+        {
+            "id": "word2vec_skipgram",
+            "label": "Skip-Gram",
+            "vocab": len(word2vec_skipgram.wv)
+        },
+        {
+            "id": "word2vec_cbow",
+            "label": "CBOW",
+            "vocab": len(word2vec_cbow.wv)
+        }
+    ]
+
+    if fasttext_model is not None:
+
+        model_data.append(
+            {
+                "id": "fasttext",
+                "label": "FastText",
+                "vocab": len(fasttext_model.wv)
+            }
+        )
+
     return {
         "ready": True,
         "message": "Semantic search system is ready.",
         "documents": len(knowledge_base),
         "categories": category_data,
         "vector_size": word2vec_skipgram.vector_size,
-        "models": [
-            {
-                "id": "word2vec_skipgram",
-                "label": "Skip-Gram",
-                "vocab": len(word2vec_skipgram.wv)
-            },
-            {
-                "id": "word2vec_cbow",
-                "label": "CBOW",
-                "vocab": len(word2vec_cbow.wv)
-            },
-            {
-                "id": "fasttext",
-                "label": "FastText",
-                "vocab": len(fasttext_model.wv)
-            }
-        ]
+        "models": model_data
     }
 
 
@@ -201,24 +239,22 @@ def stats():
 @app.get("/models")
 def get_models():
 
-    return {
-        "models": [
+    model_data = []
+
+    for model_name, model in MODELS.items():
+
+        label = MODEL_LABELS[model_name]
+
+        model_data.append(
             {
-                "id": "word2vec_cbow",
-                "label": "CBOW",
-                "vocab": len(word2vec_cbow.wv)
-            },
-            {
-                "id": "word2vec_skipgram",
-                "label": "Skip-Gram",
-                "vocab": len(word2vec_skipgram.wv)
-            },
-            {
-                "id": "fasttext",
-                "label": "FastText",
-                "vocab": len(fasttext_model.wv)
+                "id": model_name,
+                "label": label,
+                "vocab": len(model.wv)
             }
-        ]
+        )
+
+    return {
+        "models": model_data
     }
 
 
@@ -255,16 +291,19 @@ def search(
         min_length=1,
         description="Natural language search query"
     ),
+
     model: str = Query(
         "word2vec_skipgram",
         description="Embedding model"
     ),
+
     top_k: int = Query(
         5,
         ge=1,
         le=50,
         description="Number of results to return"
     ),
+
     category: str | None = Query(
         None,
         description="Optional document category"
@@ -272,6 +311,7 @@ def search(
 ):
 
     if model not in MODELS:
+
         return {
             "error": f"Unsupported model: {model}"
         }
@@ -290,6 +330,7 @@ def search(
     )
 
     if not query_info["processed_query"]:
+
         return {
             "query": query,
             "model": model,
@@ -311,7 +352,10 @@ def search(
 
     formatted_results = []
 
-    for rank, (_, row) in enumerate(results.iterrows(), start=1):
+    for rank, (_, row) in enumerate(
+        results.iterrows(),
+        start=1
+    ):
 
         formatted_results.append(
             {
@@ -324,11 +368,6 @@ def search(
                 "similarity_score": float(row["similarity"])
             }
         )
-
-    query_info = get_query_token_status(
-        query=query,
-        model=selected_model
-    )
 
     return {
         "query": query,
@@ -352,12 +391,14 @@ def compare_models(
         min_length=1,
         description="Natural language search query"
     ),
+
     top_k: int = Query(
         5,
         ge=1,
         le=50,
         description="Number of results to return"
     ),
+
     category: str | None = Query(
         None,
         description="Optional document category"
@@ -374,6 +415,24 @@ def compare_models(
             documents=knowledge_base["cleaned_text"]
         )
 
+        query_info = get_query_token_status(
+            query=query,
+            model=model
+        )
+
+        if not query_info["processed_query"]:
+
+            comparison_results[model_name] = {
+                "model": model_name,
+                "model_label": MODEL_LABELS[model_name],
+                "processed_query": "",
+                "known_tokens": [],
+                "unknown_tokens": [],
+                "results": []
+            }
+
+            continue
+
         results = semantic_search(
             query=query,
             model=model,
@@ -381,11 +440,6 @@ def compare_models(
             knowledge_base=knowledge_base,
             top_k=top_k,
             category=category
-        )
-
-        query_info = get_query_token_status(
-            query=query,
-            model=model
         )
 
         formatted_results = []
