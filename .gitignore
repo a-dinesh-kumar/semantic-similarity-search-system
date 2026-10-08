@@ -23,7 +23,7 @@ dist/
 *.npy
 
 # ---------- Generated data ----------
-data/processed/
+# data/processed/
 
 # ---------- Raw dataset (uncomment if it is large or private) ----------
 # data/raw/
